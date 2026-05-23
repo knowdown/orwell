@@ -20,5 +20,5 @@ jobs:
         run: |
           npx wrangler secret put GITHUB_CLIENT_ID --name knowdown-orwell-oauth <<< "${{ secrets.OAUTH_CLIENT_ID }}"
           npx wrangler secret put GITHUB_CLIENT_SECRET --name knowdown-orwell-oauth <<< "${{ secrets.OAUTH_CLIENT_SECRET }}"
-          npx wrangler secret put GITHUB_ADMIN_TOKEN --name knowdown-orwell-oauth <<< "${{ secrets.GITHUB_ADMIN_TOKEN }}"
+          npx wrangler secret put GITHUB_ADMIN_TOKEN --name knowdown-orwell-oauth <<< "${{ secrets.WORKER_DB_REPO_PAT }}"
           npx wrangler deploy
