@@ -1,0 +1,31 @@
+name: On-demand portal action
+
+on:
+  workflow_dispatch:
+    inputs:
+      triggered_by:
+        description: GitHub login of the user who triggered this
+        required: true
+      action_type:
+        description: Type of action requested
+        required: true
+        default: default
+      payload:
+        description: JSON payload from the portal (optional)
+        required: false
+        default: '{}'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log trigger details
+        run: |
+          echo "Triggered by: ${{ github.event.inputs.triggered_by }}"
+          echo "Action type:  ${{ github.event.inputs.action_type }}"
+          echo "Payload:      ${{ github.event.inputs.payload }}"
+
+      # ── Add your real steps below ──────────────────────────────────────────
+      # Example: checkout and run a script
+      # - uses: actions/checkout@v4
+      # - run: python scripts/process.py '${{ github.event.inputs.payload }}'

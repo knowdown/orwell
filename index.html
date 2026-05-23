@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Health — Request Portal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f8fa;
+      color: #24292f;
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background: #fff;
+      border-bottom: 1px solid #d0d7de;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-brand { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(27,31,36,0.15);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary   { background: #2da44e; color: #fff; border-color: rgba(27,31,36,0.15); }
+    .btn-primary:hover { background: #2c974b; }
+    .btn-secondary { background: #fff; color: #24292f; }
+    .btn-secondary:hover { background: #f3f4f6; }
+    .btn-outline-github {
+      background: #24292f;
+      color: #fff;
+      border-color: transparent;
+      font-size: 15px;
+      padding: 10px 24px;
+    }
+    .btn-outline-github:hover { background: #32383f; }
+
+    .container { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .hero {
+      text-align: center;
+      padding: 80px 24px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .hero h1 { font-size: 28px; font-weight: 600; margin-bottom: 12px; }
+    .hero p  { color: #57606a; margin-bottom: 32px; line-height: 1.6; }
+    .hero .github-icon { margin-bottom: 24px; }
+
+    .user-info { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #d0d7de; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px;
+      background: #f6f8fa;
+      border-bottom: 1px solid #d0d7de;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .card-body { padding: 20px; }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-weight: 500; font-size: 14px; margin-bottom: 6px; }
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+      color: #24292f;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #0969da;
+      box-shadow: 0 0 0 3px rgba(9,105,218,0.1);
+    }
+    textarea { resize: vertical; min-height: 100px; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-pending  { background: #fff8c5; color: #9a6700; border: 1px solid #d4a72c55; }
+    .badge-approved { background: #dafbe1; color: #116329; border: 1px solid #2da44e55; }
+    .badge-rejected { background: #ffebe9; color: #82071e; border: 1px solid #cf222e55; }
+    .badge-closed   { background: #f0f0f0; color: #57606a; border: 1px solid #d0d7de; }
+
+    .issue-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid #d0d7de;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .issue-item:last-child { border-bottom: none; }
+    .issue-title { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+    .issue-meta  { font-size: 12px; color: #57606a; }
+    .issue-meta a { color: #0969da; text-decoration: none; }
+    .issue-meta a:hover { text-decoration: underline; }
+    .issue-body-preview {
+      font-size: 13px;
+      color: #57606a;
+      margin-top: 4px;
+      white-space: pre-wrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .issue-status-icon { flex-shrink: 0; margin-top: 2px; }
+
+    .empty { text-align: center; padding: 48px 24px; color: #57606a; }
+    .empty svg { margin-bottom: 16px; opacity: 0.4; }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .alert-success { background: #dafbe1; color: #116329; border: 1px solid #2da44e55; }
+    .alert-error   { background: #ffebe9; color: #82071e; border: 1px solid #cf222e55; }
+    .alert-info    { background: #ddf4ff; color: #0550ae; border: 1px solid #0969da55; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    .spinner-dark { border-color: rgba(0,0,0,0.15); border-top-color: #24292f; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    .tabs { display: flex; border-bottom: 1px solid #d0d7de; margin-bottom: 20px; }
+    .tab {
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: #57606a;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      font-family: inherit;
+    }
+    .tab.active { color: #24292f; border-bottom-color: #fd7e14; font-weight: 500; }
+    .tab:hover:not(.active) { color: #24292f; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Pending approval screen ─────────────────────────────────────────── */
+    .pending-screen {
+      text-align: center;
+      padding: 80px 24px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .pending-screen .pending-icon {
+      width: 64px; height: 64px;
+      background: #fff8c5;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      border: 2px solid #d4a72c55;
+    }
+    .pending-screen h2 { font-size: 22px; font-weight: 600; margin-bottom: 10px; }
+    .pending-screen p  { color: #57606a; line-height: 1.6; margin-bottom: 8px; }
+    .roles-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      justify-content: center; margin-top: 12px;
+    }
+    .role-badge {
+      background: #ddf4ff; color: #0550ae;
+      border: 1px solid #0969da44;
+      padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── CONFIG ─────────────────────────────────────────────────────────────────
+     Fill in these four values after completing Steps 1-3 in SETUP.md
+  ─────────────────────────────────────────────────────────────────────────── -->
+<script>
+  const CONFIG = {
+    clientId:   "",                                      // GitHub OAuth App client ID
+    workerUrl:  "",                                      // Cloudflare Worker URL
+    repoOwner:  "knowdown",                              // GitHub username
+    repoName:   "orwell",                                // Repo that holds the issues
+    labels: {
+      pending:  "approval: pending",
+      approved: "approval: approved",
+      rejected: "approval: rejected",
+    },
+  };
+  const GITHUB_API  = "https://api.github.com";
+  const REDIRECT_URI = window.location.origin + window.location.pathname;
+</script>
+
+<!-- ── NAVBAR ─────────────────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <svg height="20" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+    </svg>
+    Customer Health Portal
+  </div>
+  <div id="nav-user"></div>
+</nav>
+
+<!-- ── SECTION: LOGIN ─────────────────────────────────────────────────────── -->
+<div id="section-login" class="section active">
+  <div class="hero">
+    <div class="github-icon">
+      <svg height="48" viewBox="0 0 16 16" fill="#24292f">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+    </div>
+    <h1>Request Access</h1>
+    <p>Sign in with your GitHub account to submit a request. Your submission will be queued for admin review.</p>
+    <button class="btn btn-outline-github" onclick="startLogin()">
+      <svg height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+      Sign in with GitHub
+    </button>
+  </div>
+</div>
+
+<!-- ── SECTION: OAUTH CALLBACK ────────────────────────────────────────────── -->
+<div id="section-callback" class="section">
+  <div class="container">
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:48px">
+        <div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px"></div>
+        <p style="margin-top:16px;color:#57606a">Completing sign-in…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION: PENDING APPROVAL ─────────────────────────────────────────── -->
+<div id="section-pending" class="section">
+  <div class="pending-screen">
+    <div class="pending-icon">
+      <svg height="28" viewBox="0 0 16 16" fill="#9a6700">
+        <path d="M8 0a8 8 0 110 16A8 8 0 018 0zm0 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM8 4a.75.75 0 01.75.75v3.5h2a.75.75 0 010 1.5h-2.75A.75.75 0 017.25 9V4.75A.75.75 0 018 4z"/>
+      </svg>
+    </div>
+    <h2>Approval pending</h2>
+    <p>Your account has been created and is waiting for admin approval.</p>
+    <p>You'll be able to access the portal once an admin reviews your request. You can close this tab — your status is saved.</p>
+    <div id="pending-user-info" style="margin-top:20px;padding:16px;background:#f6f8fa;border:1px solid #d0d7de;border-radius:8px;font-size:14px;color:#57606a;">
+      <div id="pending-roles-block"></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
+      <button class="btn btn-secondary" onclick="checkMyStatus()">↻ Check status</button>
+      <button class="btn btn-secondary" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION: MAIN APP ──────────────────────────────────────────────────── -->
+<div id="section-app" class="section">
+  <div class="container">
+    <div id="app-alert"></div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('submit')">Submit a request</button>
+      <button class="tab" onclick="switchTab('status')">My requests</button>
+      <button class="tab" onclick="switchTab('actions')">Actions</button>
+    </div>
+
+    <!-- Submit tab -->
+    <div id="tab-submit" class="tab-panel active">
+      <div class="card">
+        <div class="card-header">New request</div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="req-title">Request title *</label>
+            <input type="text" id="req-title" placeholder="Short description of what you need" />
+          </div>
+          <div class="form-group">
+            <label for="req-type">Request type</label>
+            <select id="req-type">
+              <option value="access">Access / permissions</option>
+              <option value="feature">Feature request</option>
+              <option value="resource">Resource allocation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="req-body">Details *</label>
+            <textarea id="req-body" placeholder="Describe your request in detail. Include any relevant context, urgency, or expected impact."></textarea>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+            <button class="btn btn-primary" id="submit-btn" onclick="submitRequest()">
+              Submit for approval
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions tab -->
+    <div id="tab-actions" class="tab-panel">
+      <div class="card">
+        <div class="card-header">Trigger a GitHub Action</div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="action-type">Action type</label>
+            <select id="action-type">
+              <option value="default">Default</option>
+              <option value="sync">Sync data</option>
+              <option value="report">Generate report</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="action-payload">Payload (JSON, optional)</label>
+            <textarea id="action-payload" placeholder='{"key": "value"}'></textarea>
+          </div>
+          <div id="dispatch-result"></div>
+          <div style="display:flex;justify-content:flex-end">
+            <button type="button" class="btn btn-primary" id="dispatch-btn" onclick="dispatchAction()">
+              Trigger action
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status tab -->
+    <div id="tab-status" class="tab-panel">
+      <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <span>My requests</span>
+          <button class="btn btn-secondary" style="padding:4px 10px;font-size:13px" onclick="loadMyRequests()">
+            ↻ Refresh
+          </button>
+        </div>
+        <div id="requests-list">
+          <div class="card-body">
+            <span class="spinner spinner-dark"></span> Loading…
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── JAVASCRIPT ─────────────────────────────────────────────────────────── -->
+<script>
+/* ── State ──────────────────────────────────────────────────────────────── */
+let token = null;
+let currentUser = null;
+
+/* ── Boot ───────────────────────────────────────────────────────────────── */
+window.addEventListener("DOMContentLoaded", async () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  const savedToken = sessionStorage.getItem("gh_token");
+
+  if (savedToken) {
+    token = savedToken;
+    await initApp();
+  } else if (code) {
+    showSection("callback");
+    await handleOAuthCallback(code);
+  } else {
+    showSection("login");
+  }
+});
+
+/* ── OAuth ──────────────────────────────────────────────────────────────── */
+function startLogin() {
+  const state = crypto.randomUUID();
+  sessionStorage.setItem("oauth_state", state);
+  const params = new URLSearchParams({
+    client_id:    CONFIG.clientId,
+    redirect_uri: REDIRECT_URI,
+    scope:        "public_repo",
+    state,
+  });
+  window.location.href = `https://github.com/login/oauth/authorize?${params}`;
+}
+
+async function handleOAuthCallback(code) {
+  const savedState    = sessionStorage.getItem("oauth_state");
+  const returnedState = new URLSearchParams(window.location.search).get("state");
+  if (savedState !== returnedState) {
+    showSection("login");
+    showAppAlert("OAuth state mismatch — possible CSRF. Please try again.", "error");
+    return;
+  }
+  sessionStorage.removeItem("oauth_state");
+
+  try {
+    const res = await fetch(`${CONFIG.workerUrl}/exchange`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (!data.access_token) throw new Error(data.description || "Token exchange failed");
+
+    token = data.access_token;
+    sessionStorage.setItem("gh_token", token);
+    window.history.replaceState({}, "", window.location.pathname);
+    await initApp();
+  } catch (err) {
+    showSection("login");
+    showAppAlert("Sign-in failed: " + err.message, "error");
+  }
+}
+
+/* ── App init ───────────────────────────────────────────────────────────── */
+async function initApp() {
+  try {
+    const res = await ghFetch("/user");
+    currentUser = await res.json();
+
+    renderNavUser();
+    await checkUserRecord();
+  } catch {
+    logout();
+    showAppAlert("Session expired — please sign in again.", "error");
+    showSection("login");
+  }
+}
+
+function renderNavUser() {
+  document.getElementById("nav-user").innerHTML = `
+    <div class="user-info">
+      <img src="${currentUser.avatar_url}" class="avatar" alt="${currentUser.login}" />
+      <span>${currentUser.login}</span>
+      <button class="btn btn-secondary" style="padding:4px 10px;font-size:13px" onclick="logout()">Sign out</button>
+    </div>
+  `;
+}
+
+/* ── User record (KV via Worker) ─────────────────────────────────────────── */
+async function checkUserRecord() {
+  // Try fetching existing record
+  let record = await workerFetch(`/users/${currentUser.login}`, "GET");
+
+  if (!record) {
+    // First login — create the record
+    record = await workerFetch("/users", "POST");
+  }
+
+  if (!record || record.status === "pending") {
+    showPendingScreen(record);
+  } else {
+    showSection("app");
+    loadMyRequests();
+  }
+}
+
+async function checkMyStatus() {
+  const record = await workerFetch(`/users/${currentUser.login}`, "GET");
+  if (record && record.status !== "pending") {
+    showSection("app");
+    loadMyRequests();
+  } else {
+    showPendingScreen(record);
+  }
+}
+
+function showPendingScreen(record) {
+  showSection("pending");
+  const info = document.getElementById("pending-user-info");
+  const roles = record?.roles?.length
+    ? record.roles.map(r => `<span class="role-badge">${escHtml(r)}</span>`).join("")
+    : "<em>No roles assigned yet</em>";
+
+  info.innerHTML = `
+    <div><strong>GitHub:</strong> @${escHtml(currentUser.login)}</div>
+    <div style="margin-top:8px"><strong>Status:</strong> <span class="badge badge-pending">pending</span></div>
+    <div style="margin-top:8px"><strong>Roles:</strong></div>
+    <div class="roles-list" style="margin-top:6px">${roles}</div>
+  `;
+}
+
+async function workerFetch(path, method, body) {
+  try {
+    const res = await fetch(`${CONFIG.workerUrl}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (res.status === 404) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/* ── GitHub API helper ──────────────────────────────────────────────────── */
+function ghFetch(path, options = {}) {
+  return fetch(`${GITHUB_API}${path}`, {
+    ...options,
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      ...(options.headers || {}),
+    },
+  });
+}
+
+/* ── Submit request ─────────────────────────────────────────────────────── */
+async function submitRequest() {
+  const title = document.getElementById("req-title").value.trim();
+  const type  = document.getElementById("req-type").value;
+  const body  = document.getElementById("req-body").value.trim();
+
+  if (!title || !body) {
+    showAppAlert("Please fill in both the title and details.", "error");
+    return;
+  }
+
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Submitting…`;
+
+  const issueBody = `**Request type:** ${type}
+
+**Details:**
+${body}
+
+---
+*Submitted by @${currentUser.login} via Customer Health Portal*`;
+
+  try {
+    const res = await ghFetch(`/repos/${CONFIG.repoOwner}/${CONFIG.repoName}/issues`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title:  `[Request] ${title}`,
+        body:   issueBody,
+        labels: [CONFIG.labels.pending],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+
+    const issue = await res.json();
+    clearForm();
+    showAppAlert(
+      `Request submitted! <a href="${issue.html_url}" target="_blank">View issue #${issue.number}</a>`,
+      "success"
+    );
+    switchTab("status");
+    await loadMyRequests();
+  } catch (err) {
+    showAppAlert("Submission failed: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Submit for approval";
+  }
+}
+
+/* ── Load user's requests ───────────────────────────────────────────────── */
+async function loadMyRequests() {
+  const list = document.getElementById("requests-list");
+  list.innerHTML = `<div class="card-body"><span class="spinner spinner-dark"></span> Loading…</div>`;
+
+  try {
+    const res = await ghFetch(
+      `/repos/${CONFIG.repoOwner}/${CONFIG.repoName}/issues?creator=${currentUser.login}&state=all&per_page=50`
+    );
+    const issues = await res.json();
+
+    const myRequests = issues.filter(i =>
+      i.labels.some(l => Object.values(CONFIG.labels).includes(l.name))
+    );
+
+    if (myRequests.length === 0) {
+      list.innerHTML = `
+        <div class="empty">
+          <svg height="32" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z"/>
+            <path d="M6.5 7.75A.75.75 0 017.25 7h1a.75.75 0 01.75.75v2.75h.25a.75.75 0 010 1.5h-2a.75.75 0 010-1.5h.25v-2h-.25a.75.75 0 01-.75-.75zM8 6a1 1 0 100-2 1 1 0 000 2z"/>
+          </svg>
+          <p>No requests yet. Submit your first request from the <strong>Submit a request</strong> tab.</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = myRequests.map(issue => {
+      const status = getStatus(issue);
+      return `
+        <div class="issue-item">
+          <div class="issue-status-icon">${statusIcon(status)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="issue-title">
+              <a href="${issue.html_url}" target="_blank" style="color:inherit;text-decoration:none">${escHtml(issue.title)}</a>
+            </div>
+            <div class="issue-body-preview">${escHtml((issue.body || "").replace(/\*\*/g, ""))}</div>
+            <div class="issue-meta">
+              #${issue.number} &middot; opened ${relTime(issue.created_at)}
+              &middot; <span class="badge badge-${status}">${status}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+  } catch (err) {
+    list.innerHTML = `<div class="card-body"><div class="alert alert-error">Failed to load: ${escHtml(err.message)}</div></div>`;
+  }
+}
+
+/* ── Helpers ────────────────────────────────────────────────────────────── */
+function getStatus(issue) {
+  const names = issue.labels.map(l => l.name);
+  if (names.includes(CONFIG.labels.approved)) return "approved";
+  if (names.includes(CONFIG.labels.rejected)) return "rejected";
+  if (issue.state === "closed")               return "closed";
+  return "pending";
+}
+
+function statusIcon(status) {
+  const icons = {
+    pending:  `<svg height="16" viewBox="0 0 16 16" fill="#9a6700"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm0 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM8 4a.75.75 0 01.75.75v3.5h2a.75.75 0 010 1.5h-2.75A.75.75 0 017.25 9V4.75A.75.75 0 018 4z"/></svg>`,
+    approved: `<svg height="16" viewBox="0 0 16 16" fill="#1a7f37"><path d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"/></svg>`,
+    rejected: `<svg height="16" viewBox="0 0 16 16" fill="#cf222e"><path d="M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z"/></svg>`,
+    closed:   `<svg height="16" viewBox="0 0 16 16" fill="#57606a"><path d="M11.28 6.78a.75.75 0 00-1.06-1.06L7.25 8.69 5.78 7.22a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l3.5-3.5z"/><path d="M16 8A8 8 0 110 8a8 8 0 0116 0zm-1.5 0a6.5 6.5 0 10-13 0 6.5 6.5 0 0013 0z"/></svg>`,
+  };
+  return icons[status] || icons.pending;
+}
+
+function showSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById("section-" + id)?.classList.add("active");
+}
+
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("tab-" + name)?.classList.add("active");
+  const tabs = [...document.querySelectorAll(".tab")];
+  const idx  = ["submit", "status", "actions"].indexOf(name);
+  if (tabs[idx]) tabs[idx].classList.add("active");
+  if (name === "status") loadMyRequests();
+}
+
+/* ── Dispatch GitHub Action ─────────────────────────────────────────────── */
+async function dispatchAction() {
+  const action_type = document.getElementById("action-type").value;
+  const rawPayload  = document.getElementById("action-payload").value.trim();
+  const resultEl    = document.getElementById("dispatch-result");
+
+  let payload = {};
+  if (rawPayload) {
+    try { payload = JSON.parse(rawPayload); }
+    catch { showDispatchResult("Payload must be valid JSON.", "error"); return; }
+  }
+
+  const btn = document.getElementById("dispatch-btn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Triggering…`;
+  resultEl.innerHTML = "";
+
+  try {
+    const res  = await workerFetch("/dispatch", "POST", { workflow: "on-demand.yml", action_type, payload });
+    if (res?.ok) {
+      showDispatchResult(
+        `Action <strong>${escHtml(action_type)}</strong> triggered. ` +
+        `<a href="https://github.com/${CONFIG.repoOwner}/${CONFIG.repoName}/actions" target="_blank">View run →</a>`,
+        "success"
+      );
+      document.getElementById("action-payload").value = "";
+    } else {
+      showDispatchResult("Dispatch failed: " + escHtml(res?.error || res?.detail || "unknown error"), "error");
+    }
+  } catch (err) {
+    showDispatchResult("Dispatch failed: " + escHtml(err.message), "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Trigger action";
+  }
+}
+
+function showDispatchResult(msg, type) {
+  document.getElementById("dispatch-result").innerHTML =
+    `<div class="alert alert-${type}" style="margin-bottom:12px">${msg}</div>`;
+}
+
+function showAppAlert(msg, type = "info") {
+  document.getElementById("app-alert").innerHTML =
+    `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { document.getElementById("app-alert").innerHTML = ""; }, 6000);
+}
+
+function clearForm() {
+  document.getElementById("req-title").value = "";
+  document.getElementById("req-body").value  = "";
+  document.getElementById("req-type").value  = "access";
+}
+
+function logout() {
+  token = null;
+  currentUser = null;
+  sessionStorage.removeItem("gh_token");
+  document.getElementById("nav-user").innerHTML = "";
+  showSection("login");
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function relTime(isoStr) {
+  const diff = Date.now() - new Date(isoStr);
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return new Date(isoStr).toLocaleDateString();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+name = "knowdown-orwell-oauth"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Secrets set via CLI — never stored here:
+#   wrangler secret put GITHUB_CLIENT_ID
+#   wrangler secret put GITHUB_CLIENT_SECRET
+#   wrangler secret put GITHUB_ADMIN_TOKEN   (PAT with repo scope for user DB)

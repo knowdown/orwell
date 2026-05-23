@@ -1,0 +1,24 @@
+name: Deploy Cloudflare Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'oauth-worker/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Worker secrets and deploy
+        working-directory: oauth-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler secret put GITHUB_CLIENT_ID --name knowdown-orwell-oauth <<< "${{ secrets.OAUTH_CLIENT_ID }}"
+          npx wrangler secret put GITHUB_CLIENT_SECRET --name knowdown-orwell-oauth <<< "${{ secrets.OAUTH_CLIENT_SECRET }}"
+          npx wrangler secret put GITHUB_ADMIN_TOKEN --name knowdown-orwell-oauth <<< "${{ secrets.GITHUB_ADMIN_TOKEN }}"
+          npx wrangler deploy
