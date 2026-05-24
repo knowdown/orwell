@@ -220,6 +220,10 @@
      Fill in these four values after completing Steps 1-3 in SETUP.md
   ─────────────────────────────────────────────────────────────────────────── -->
 <script>
+  const AUTH_TOKEN_STORAGE_KEY = "gh_token";
+  const AUTH_USER_STORAGE_KEY = "gh_user";
+  const AUTH_RETURN_TO_STORAGE_KEY = "gh_auth_return_to";
+
   const CONFIG = {
     clientId:   "Ov23lizKb2rJG6JufbxF",                  // GitHub OAuth App client ID
     workerUrl:  "https://knowdown-orwell-oauth.go4chaitu.workers.dev", // Cloudflare Worker URL
@@ -233,6 +237,34 @@
   };
   const GITHUB_API  = "https://api.github.com";
   const REDIRECT_URI = window.location.origin + window.location.pathname;
+  const PAGE_PARAMS = new URLSearchParams(window.location.search);
+  const AUTH_CONTEXT = {
+    returnTo: normalizeReturnTo(PAGE_PARAMS.get("return_to")),
+    requireApproval: PAGE_PARAMS.get("require_approval") === "1",
+  };
+
+  function normalizeReturnTo(value) {
+    if (!value) return null;
+    try {
+      const url = new URL(value, window.location.origin);
+      if (url.origin !== window.location.origin) return null;
+      return url.toString();
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function loadStoredReturnTo() {
+    return normalizeReturnTo(sessionStorage.getItem(AUTH_RETURN_TO_STORAGE_KEY));
+  }
+
+  function persistReturnTo(url) {
+    if (url) sessionStorage.setItem(AUTH_RETURN_TO_STORAGE_KEY, url);
+  }
+
+  function clearStoredReturnTo() {
+    sessionStorage.removeItem(AUTH_RETURN_TO_STORAGE_KEY);
+  }
 </script>
 
 <!-- ── NAVBAR ─────────────────────────────────────────────────────────────── -->
@@ -398,7 +430,9 @@ let currentUser = null;
 window.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
-  const savedToken = sessionStorage.getItem("gh_token");
+  const savedToken = sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+
+  if (AUTH_CONTEXT.returnTo) persistReturnTo(AUTH_CONTEXT.returnTo);
 
   if (savedToken) {
     token = savedToken;
@@ -413,6 +447,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 /* ── OAuth ──────────────────────────────────────────────────────────────── */
 function startLogin() {
+  persistReturnTo(AUTH_CONTEXT.returnTo || loadStoredReturnTo());
   const state = crypto.randomUUID();
   sessionStorage.setItem("oauth_state", state);
   const params = new URLSearchParams({
@@ -444,7 +479,7 @@ async function handleOAuthCallback(code) {
     if (!data.access_token) throw new Error(data.description || "Token exchange failed");
 
     token = data.access_token;
-    sessionStorage.setItem("gh_token", token);
+    sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
     window.history.replaceState({}, "", window.location.pathname);
     await initApp();
   } catch (err) {
@@ -458,8 +493,14 @@ async function initApp() {
   try {
     const res = await ghFetch("/user");
     currentUser = await res.json();
+    sessionStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(currentUser));
 
     renderNavUser();
+    if (loadStoredReturnTo()) {
+      await continueBrokerFlow();
+      return;
+    }
+
     await checkUserRecord();
   } catch {
     logout();
@@ -478,16 +519,33 @@ function renderNavUser() {
   `;
 }
 
+async function continueBrokerFlow() {
+  const record = await ensureUserRecord();
+  if (AUTH_CONTEXT.requireApproval && record?.status !== "approved") {
+    showPendingScreen(record);
+    return;
+  }
+
+  const returnTo = loadStoredReturnTo();
+  clearStoredReturnTo();
+  if (returnTo) {
+    window.location.replace(returnTo);
+    return;
+  }
+
+  await checkUserRecord();
+}
+
+async function ensureUserRecord() {
+  let record = await workerFetch(`/users/${currentUser.login}`, "GET");
+  if (!record) record = await workerFetch("/users", "POST");
+  return record;
+}
+
 /* ── User record (KV via Worker) ─────────────────────────────────────────── */
 async function checkUserRecord() {
   try {
-    // Try fetching existing record
-    let record = await workerFetch(`/users/${currentUser.login}`, "GET");
-
-    if (!record) {
-      // First login — create the record
-      record = await workerFetch("/users", "POST");
-    }
+    const record = await ensureUserRecord();
 
     if (!record || record.status === "pending") {
       showPendingScreen(record);
@@ -760,7 +818,9 @@ function clearForm() {
 function logout() {
   token = null;
   currentUser = null;
-  sessionStorage.removeItem("gh_token");
+  sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_USER_STORAGE_KEY);
+  clearStoredReturnTo();
   document.getElementById("nav-user").innerHTML = "";
   showSection("login");
 }
