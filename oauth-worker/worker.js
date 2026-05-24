@@ -91,10 +91,14 @@ export default {
       };
 
       // Write individual file and update index in parallel
-      await Promise.all([
-        writeUserFile(env, caller, record),
-        updateIndex(env, caller, "pending"),
-      ]);
+      try {
+        await Promise.all([
+          writeUserFile(env, caller, record),
+          updateIndex(env, caller, "pending"),
+        ]);
+      } catch (err) {
+        return json({ error: "user_create_failed", detail: err.message }, 500, cors);
+      }
 
       return json(record, 201, cors);
     }
@@ -162,7 +166,10 @@ async function writeUserFile(env, login, record) {
     content,
     ...(sha ? { sha } : {}),
   };
-  await ghAdmin(env, "PUT", `/repos/${DB_OWNER}/${DB_REPO}/contents/${path}`, body);
+  const res = await ghAdmin(env, "PUT", `/repos/${DB_OWNER}/${DB_REPO}/contents/${path}`, body);
+  if (!res.ok) {
+    throw new Error(`write_user_failed:${res.status}:${await res.text()}`);
+  }
 }
 
 async function updateIndex(env, login, status) {
@@ -173,11 +180,14 @@ async function updateIndex(env, login, status) {
 
   index[login] = status;
 
-  await ghAdmin(env, "PUT", `/repos/${DB_OWNER}/${DB_REPO}/contents/${path}`, {
+  const resPut = await ghAdmin(env, "PUT", `/repos/${DB_OWNER}/${DB_REPO}/contents/${path}`, {
     message: `chore: update index for ${login} [skip ci]`,
     content: btoa(JSON.stringify(index, null, 2)),
     ...(existing ? { sha: existing.sha } : {}),
   });
+  if (!resPut.ok) {
+    throw new Error(`update_index_failed:${resPut.status}:${await resPut.text()}`);
+  }
 }
 
 function ghAdmin(env, method, path, body) {

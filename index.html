@@ -480,29 +480,40 @@ function renderNavUser() {
 
 /* ── User record (KV via Worker) ─────────────────────────────────────────── */
 async function checkUserRecord() {
-  // Try fetching existing record
-  let record = await workerFetch(`/users/${currentUser.login}`, "GET");
+  try {
+    // Try fetching existing record
+    let record = await workerFetch(`/users/${currentUser.login}`, "GET");
 
-  if (!record) {
-    // First login — create the record
-    record = await workerFetch("/users", "POST");
-  }
+    if (!record) {
+      // First login — create the record
+      record = await workerFetch("/users", "POST");
+    }
 
-  if (!record || record.status === "pending") {
-    showPendingScreen(record);
-  } else {
-    showSection("app");
-    loadMyRequests();
+    if (!record || record.status === "pending") {
+      showPendingScreen(record);
+    } else {
+      showSection("app");
+      loadMyRequests();
+    }
+  } catch (err) {
+    logout();
+    showSection("login");
+    showAppAlert("We couldn't create or load your user record: " + escHtml(err.message), "error");
   }
 }
 
 async function checkMyStatus() {
-  const record = await workerFetch(`/users/${currentUser.login}`, "GET");
-  if (record && record.status !== "pending") {
-    showSection("app");
-    loadMyRequests();
-  } else {
-    showPendingScreen(record);
+  try {
+    const record = await workerFetch(`/users/${currentUser.login}`, "GET");
+    if (record && record.status !== "pending") {
+      showSection("app");
+      loadMyRequests();
+    } else {
+      showPendingScreen(record);
+    }
+  } catch (err) {
+    showPendingScreen(null);
+    showAppAlert("Status check failed: " + escHtml(err.message), "error");
   }
 }
 
@@ -522,20 +533,23 @@ function showPendingScreen(record) {
 }
 
 async function workerFetch(path, method, body) {
-  try {
-    const res = await fetch(`${CONFIG.workerUrl}${path}`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (res.status === 404) return null;
-    return await res.json();
-  } catch {
-    return null;
+  const res = await fetch(`${CONFIG.workerUrl}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (res.status === 404) return null;
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.description || data.detail || data.error || `Worker request failed (HTTP ${res.status})`);
   }
+
+  return data;
 }
 
 /* ── GitHub API helper ──────────────────────────────────────────────────── */
